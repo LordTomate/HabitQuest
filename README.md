@@ -4,6 +4,7 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
 
 ## Inhaltsverzeichnis
 
+- [Setup](#setup)
 1. [Konzeptionelle Beschreibung des Use-Cases](#1-konzeptionelle-beschreibung-des-use-cases)
    1. [Geplante Architektur und Klassen](#11-geplante-architektur-und-klassen)
    2. [Interaktion der Objekte](#12-interaktion-der-objekte)
@@ -14,6 +15,36 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
    1. [Git-Workflow: dev / main](#41-git-workflow-dev--main)
    2. [Continuous Integration (CI)](#42-continuous-integration-ci)
 5. [Fazit & Ausblick (Limitationen)](#5-fazit--ausblick-limitationen)
+
+## Setup
+
+Bevor der Code ausgeführt werden kann, sind folgende Schritte notwendig:
+
+1. Virtuelle Umgebung erstellen und aktivieren:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+2. Tkinter installieren. Es wird für die GUI benötigt, ist aber ein Systempaket und kein
+   Python-Paket, das über pip installiert werden könnte:
+
+   ```bash
+   sudo apt-get install -y python3-tk
+   ```
+
+3. Anwendung starten:
+
+   ```bash
+   python ui.py
+   ```
+
+4. Tests ausführen:
+
+   ```bash
+   python -m unittest test_habit_quest.py
+   ```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
 
