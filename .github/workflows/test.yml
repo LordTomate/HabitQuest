@@ -1,0 +1,24 @@
+name: Tests
+
+# Run the test suite on every push and pull request so broken code is caught early.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Tkinter is a system package, not a pip package. xvfb provides a virtual
+      # display so the GUI's widgets can be created on a headless runner.
+      - name: Install system dependencies (Tkinter + virtual display)
+        run: sudo apt-get update && sudo apt-get install -y python3-tk xvfb
+
+      - name: Run tests
+        run: xvfb-run python -m unittest test_habit_quest.py
