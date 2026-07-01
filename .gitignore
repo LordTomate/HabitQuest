@@ -1,3 +1,5 @@
 konzept.pdf
 .*
 !.gitignore
+!.github/
+__*/
