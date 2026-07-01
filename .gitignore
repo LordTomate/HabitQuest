@@ -1,4 +1,5 @@
 konzept.pdf
+habitquest_data.json
 .*
 !.gitignore
 !.github/
