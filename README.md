@@ -229,10 +229,13 @@ Damit beim Zusammenführen der Branches keine Fehler entstehen, laufen die Testf
 Hintergrund ab:
 
 1. Neue Funktionen werden direkt mit Unittests in `test_habit_quest.py` abgedeckt.
-2. Bei jedem Push auf GitHub startet automatisch eine Action, die alle Tests durchlaufen lässt:
+2. Bei jedem Push auf GitHub startet automatisch eine Action, die alle Tests durchlaufen lässt.
+   Da die Tests echte Tkinter-Widgets erzeugen, was ein Display voraussetzt, muss der Testbefehl
+   in der headless CI-Umgebung (z. B. GitHub Actions Runner) mit `xvfb-run` gestartet werden,
+   sonst schlagen die Tests mit einem "no display name"-Fehler fehl:
 
    ```bash
-   python3 -m unittest test_habit_quest.py
+   xvfb-run python3 -m unittest test_habit_quest.py
    ```
 
 Das gibt die Sicherheit, dass Änderungen keine bestehenden Berechnungen unbeabsichtigt

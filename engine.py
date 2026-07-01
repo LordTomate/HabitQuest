@@ -60,7 +60,9 @@ class HabitQuestEngine:
         """Return total XP required to have reached a given level."""
         if level < 1:
             raise ValueError("level must be at least 1.")
-        return sum(self.xp_for_level(current_level) for current_level in range(1, level))
+        return sum(
+            self.xp_for_level(current_level) for current_level in range(1, level)
+        )
 
     def check_new_day(self) -> None:
         """Advance routine cycles and reset stale streaks when a new day starts."""
@@ -92,7 +94,9 @@ class HabitQuestEngine:
 
     def load_today_completions(self) -> None:
         """Load the completion set for the current date into memory."""
-        self.completed_today = set(self.completed_by_date.get(self._today_string(), set()))
+        self.completed_today = set(
+            self.completed_by_date.get(self._today_string(), set())
+        )
 
     def calc_xp_reward(self) -> int:
         """Return the XP reward for completing one task."""
@@ -170,7 +174,9 @@ class HabitQuestEngine:
             completion_date: set(task_keys)
             for completion_date, task_keys in data.get("completed_by_date", {}).items()
         }
-        self.completed_today = set(self.completed_by_date.get(self._today_string(), set()))
+        self.completed_today = set(
+            self.completed_by_date.get(self._today_string(), set())
+        )
 
     def get_all_today_task_keys(self) -> set[str]:
         """Return all task keys scheduled for today."""
@@ -209,7 +215,12 @@ class HabitQuestEngine:
         self.profile.last_completed_date = today
         self.profile.last_all_done_date = today
         self.profile.history.append(
-            {"date": today, "type": "rest", "streak": self.profile.streak, "xp": self.profile.xp}
+            {
+                "date": today,
+                "type": "rest",
+                "streak": self.profile.streak,
+                "xp": self.profile.xp,
+            }
         )
         self.save_data()
         return True

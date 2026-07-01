@@ -16,10 +16,14 @@ class HabitQuestApp:
         self.root.title("HabitQuest")
         self.root.geometry("360x320")
 
-        self.summary_label = ttk.Label(root, text="", font=("TkDefaultFont", 11, "bold"))
+        self.summary_label = ttk.Label(
+            root, text="", font=("TkDefaultFont", 11, "bold")
+        )
         self.status_label = ttk.Label(root, text="")
         self.tasks_frame = ttk.Frame(root, padding=10)
-        self.rest_button = ttk.Button(root, text="Rest day", command=self.claim_rest_day)
+        self.rest_button = ttk.Button(
+            root, text="Rest day", command=self.claim_rest_day
+        )
 
         self.summary_label.pack(pady=(10, 0))
         self.status_label.pack(pady=(10, 0))
@@ -47,7 +51,9 @@ class HabitQuestApp:
 
         today_tasks = self.engine.get_today_tasks()
         if not today_tasks:
-            ttk.Label(self.tasks_frame, text="No tasks scheduled today.").pack(anchor="w")
+            ttk.Label(self.tasks_frame, text="No tasks scheduled today.").pack(
+                anchor="w"
+            )
             return
 
         for task in today_tasks:
