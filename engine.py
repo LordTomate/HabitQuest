@@ -200,6 +200,54 @@ class HabitQuestEngine:
                 )
         return tasks
 
+    def add_routine(
+        self, name: str, categories: list[tuple[str, list[str]]], paused: bool = False
+    ) -> Routine:
+        """Create a new routine and persist it."""
+        routine_name = self._normalize_routine_name(name)
+        if routine_name in self.routines:
+            raise ValueError(f"Routine already exists: {routine_name}")
+
+        category_objects = self._build_categories(categories)
+        routine = Routine(name=routine_name, categories=category_objects, paused=paused)
+        self.routines[routine_name] = routine
+        self._cleanup_today_completions()
+        self.save_data()
+        return routine
+
+    def update_routine(
+        self,
+        current_name: str,
+        new_name: str,
+        categories: list[tuple[str, list[str]]],
+        paused: bool | None = None,
+    ) -> Routine:
+        """Update an existing routine and persist the changed values."""
+        current_key = self._normalize_routine_name(current_name)
+        if current_key not in self.routines:
+            raise ValueError(f"Unknown routine: {current_key}")
+
+        target_name = self._normalize_routine_name(new_name)
+        if target_name != current_key and target_name in self.routines:
+            raise ValueError(f"Routine already exists: {target_name}")
+
+        original = self.routines[current_key]
+        category_objects = self._build_categories(categories)
+        new_day_index = original.day_index % len(category_objects)
+        updated = Routine(
+            name=target_name,
+            categories=category_objects,
+            day_index=new_day_index,
+            paused=original.paused if paused is None else paused,
+        )
+
+        if target_name != current_key:
+            del self.routines[current_key]
+        self.routines[target_name] = updated
+        self._cleanup_today_completions()
+        self.save_data()
+        return updated
+
     def claim_rest_day(self) -> bool:
         """Count today as protected rest without requiring task completion."""
         today = self._today_string()
@@ -295,3 +343,39 @@ class HabitQuestEngine:
             if item.get("date") != today and item.get("type") in {"tasks", "rest"}:
                 return item
         return None
+
+    def _normalize_routine_name(self, name: str) -> str:
+        """Validate and normalize a routine name."""
+        if not isinstance(name, str):
+            raise TypeError("Routine name must be a string.")
+        normalized = name.strip()
+        if not normalized:
+            raise ValueError("Routine name must not be empty.")
+        return normalized
+
+    def _build_categories(
+        self, categories: list[tuple[str, list[str]]]
+    ) -> list[Category]:
+        """Convert validated category input tuples into Category objects."""
+        if not isinstance(categories, list) or not categories:
+            raise ValueError("A routine needs at least one category.")
+
+        built_categories: list[Category] = []
+        for category in categories:
+            if (
+                not isinstance(category, tuple)
+                or len(category) != 2
+                or not isinstance(category[1], list)
+            ):
+                raise TypeError(
+                    "Categories must use (category_name, [task1, task2, ...]) tuples."
+                )
+            category_name, task_names = category
+            built_categories.append(Category(name=category_name, tasks=task_names))
+        return built_categories
+
+    def _cleanup_today_completions(self) -> None:
+        """Remove stale completion keys after routine changes."""
+        valid_keys = self.get_all_today_task_keys()
+        self.completed_today &= valid_keys
+        self.completed_by_date[self._today_string()] = set(self.completed_today)

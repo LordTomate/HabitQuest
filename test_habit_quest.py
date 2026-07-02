@@ -97,6 +97,56 @@ class TestHabitQuestEngine(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.engine.toggle_task("Training::Push::Not A Real Task")
 
+    def test_add_routine_adds_tasks_to_today(self) -> None:
+        """Adding a routine should expose its tasks in today's checklist."""
+        self.engine.add_routine("Morning", [("Wake", ["Drink Water", "Stretch"])])
+        task_names = [task["task"] for task in self.engine.get_today_tasks()]
+
+        self.assertIn("Drink Water", task_names)
+        self.assertIn("Stretch", task_names)
+
+    def test_add_routine_rejects_duplicate_name(self) -> None:
+        """Routine names should stay unique to avoid accidental overwrites."""
+        with self.assertRaises(ValueError):
+            self.engine.add_routine("Training", [("Push", ["Bench Press"])])
+
+    def test_update_routine_renames_and_replaces_categories(self) -> None:
+        """Editing a routine should update both name and task plan."""
+        self.engine.update_routine(
+            current_name="Training",
+            new_name="Strength",
+            categories=[("Upper", ["Pull-up", "Dip"])],
+        )
+
+        self.assertIn("Strength", self.engine.routines)
+        self.assertNotIn("Training", self.engine.routines)
+        task_names = [task["task"] for task in self.engine.get_today_tasks()]
+        self.assertIn("Pull-up", task_names)
+        self.assertNotIn("Bench Press", task_names)
+
+
+class TestRoutineInputParsing(unittest.TestCase):
+    """Tests for converting routine text input into structured categories."""
+
+    def test_parse_categories_input_valid(self) -> None:
+        """Expected format should parse into category/task tuples."""
+        parsed = HabitQuestApp.parse_categories_input(
+            "Push: Bench Press, Overhead Press; Pull: Rows, Biceps"
+        )
+
+        self.assertEqual(
+            parsed,
+            [
+                ("Push", ["Bench Press", "Overhead Press"]),
+                ("Pull", ["Rows", "Biceps"]),
+            ],
+        )
+
+    def test_parse_categories_input_invalid(self) -> None:
+        """Missing ':' should fail with a helpful error."""
+        with self.assertRaises(ValueError):
+            HabitQuestApp.parse_categories_input("Push Bench Press")
+
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Tkinter UI tests need a display")
 class TestHabitQuestApp(unittest.TestCase):
