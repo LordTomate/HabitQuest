@@ -198,6 +198,26 @@ class TestHabitQuestEngine(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.engine.add_routine("Training", [("Push", ["Bench Press"])])
 
+    def test_delete_routine_removes_tasks_and_persists(self) -> None:
+        """Deleting a routine should remove it and its current tasks permanently."""
+        self.engine.add_routine("Morning", [("Wake", ["Drink Water"])])
+
+        self.engine.delete_routine("Morning")
+        reloaded = HabitQuestEngine(
+            save_path=self.engine.save_path,
+            today_provider=self.clock.today,
+        )
+
+        self.assertNotIn("Morning", self.engine.routines)
+        self.assertNotIn("Morning", reloaded.routines)
+        task_names = [task["task"] for task in self.engine.get_today_tasks()]
+        self.assertNotIn("Drink Water", task_names)
+
+    def test_delete_routine_keeps_at_least_one_routine(self) -> None:
+        """The last routine cannot be removed because the app needs a task plan."""
+        with self.assertRaises(ValueError):
+            self.engine.delete_routine("Training")
+
     def test_update_routine_renames_and_replaces_categories(self) -> None:
         """Editing a routine should update both name and task plan."""
         self.engine.update_routine(
