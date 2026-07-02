@@ -18,39 +18,52 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
 
 ## Setup
 
-Bevor der Code ausgeführt werden kann, sind folgende Schritte notwendig:
+Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
+
+### Option A: venv + pip
 
 1. Virtuelle Umgebung erstellen und aktivieren:
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
 2. Setup-Skript ausführen (installiert `requirements.txt` und prüft Tkinter):
 
-   ```bash
-   bash scripts/setup.sh
-   ```
+  ```bash
+  bash scripts/setup.sh
+  ```
 
 3. Falls Tkinter auf deinem System nicht automatisch installiert werden konnte,
-   installiere es manuell. Es ist ein Systempaket und kein Python-Paket:
+  installiere es manuell. Es ist ein Systempaket und kein Python-Paket:
 
-   ```bash
-   sudo apt-get install -y python3-tk
-   ```
+  ```bash
+  sudo apt-get install -y python3-tk
+  ```
 
-4. Anwendung starten:
+### Option B: Conda (inklusive Tkinter)
 
-   ```bash
-  python3 ui.py
-   ```
+1. Conda-Umgebung aus `environment.yaml` erstellen/aktualisieren:
 
-5. Tests ausführen:
+  ```bash
+  bash scripts/setup_conda.sh
+  ```
 
-   ```bash
-  python3 -m unittest test_habit_quest.py
-   ```
+2. Falls du die Umgebung manuell aktivieren willst:
+
+  ```bash
+  conda activate habitquest
+  ```
+
+### Start und Tests
+
+Nach Setup über Option A oder B:
+
+```bash
+python3 ui.py
+python3 -m unittest test_habit_quest.py
+```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
 
