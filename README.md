@@ -27,23 +27,29 @@ Bevor der Code ausgeführt werden kann, sind folgende Schritte notwendig:
    source .venv/bin/activate
    ```
 
-2. Tkinter installieren. Es wird für die GUI benötigt, ist aber ein Systempaket und kein
-   Python-Paket, das über pip installiert werden könnte:
+2. Setup-Skript ausführen (installiert `requirements.txt` und prüft Tkinter):
+
+   ```bash
+   bash scripts/setup.sh
+   ```
+
+3. Falls Tkinter auf deinem System nicht automatisch installiert werden konnte,
+   installiere es manuell. Es ist ein Systempaket und kein Python-Paket:
 
    ```bash
    sudo apt-get install -y python3-tk
    ```
 
-3. Anwendung starten:
+4. Anwendung starten:
 
    ```bash
-   python ui.py
+  python3 ui.py
    ```
 
-4. Tests ausführen:
+5. Tests ausführen:
 
    ```bash
-   python -m unittest test_habit_quest.py
+  python3 -m unittest test_habit_quest.py
    ```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
