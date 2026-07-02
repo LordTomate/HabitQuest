@@ -249,6 +249,18 @@ class HabitQuestEngine:
         self.save_data()
         return routine
 
+    def delete_routine(self, name: str) -> None:
+        """Delete a routine and remove its completed tasks from today's view."""
+        routine_name = self._normalize_routine_name(name)
+        if routine_name not in self.routines:
+            raise ValueError(f"Unknown routine: {routine_name}")
+        if len(self.routines) == 1:
+            raise ValueError("At least one routine must remain.")
+
+        del self.routines[routine_name]
+        self._cleanup_today_completions()
+        self.save_data()
+
     def update_routine(
         self,
         current_name: str,

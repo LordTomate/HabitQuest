@@ -900,6 +900,12 @@ class HabitQuestApp:
         ).pack(side="left", padx=(8, 0))
         ttk.Button(
             buttons,
+            text="Delete selected",
+            style="Ghost.TButton",
+            command=lambda: self.delete_selected_routine(routines_listbox),
+        ).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            buttons,
             text="Close",
             style="Ghost.TButton",
             command=window.destroy,
@@ -927,6 +933,35 @@ class HabitQuestApp:
             self.engine.add_routine(routine_name, categories)
         except (TypeError, ValueError) as error:
             messagebox.showerror("Cannot add routine", str(error), parent=self.root)
+            return
+
+        self.refresh_routine_listbox(routines_listbox)
+        self.refresh_ui()
+
+    def delete_selected_routine(self, routines_listbox: tk.Listbox) -> None:
+        """Delete the selected routine after the user confirms the action."""
+        selected = routines_listbox.curselection()
+        if not selected:
+            messagebox.showinfo(
+                "Select a routine",
+                "Please select a routine to delete.",
+                parent=self.root,
+            )
+            return
+
+        routine_name = routines_listbox.get(selected[0])
+        confirmed = messagebox.askyesno(
+            "Delete routine",
+            f'Delete the routine "{routine_name}"? This cannot be undone.',
+            parent=self.root,
+        )
+        if not confirmed:
+            return
+
+        try:
+            self.engine.delete_routine(routine_name)
+        except (TypeError, ValueError) as error:
+            messagebox.showerror("Cannot delete routine", str(error), parent=self.root)
             return
 
         self.refresh_routine_listbox(routines_listbox)
