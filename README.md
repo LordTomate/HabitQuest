@@ -196,6 +196,7 @@ classDiagram
         +claim_rest_day() bool
         +add_routine(name, categories) Routine
         +update_routine(name, new_name, categories) Routine
+        +delete_routine(name)
         +save_data()
         +load_data()
     }
@@ -256,9 +257,9 @@ Datenmodell. Das Zusammenspiel funktioniert aktuell wie folgt:
 4. **Aufgabe abschließen**: Ein Klick delegiert an `engine.toggle_task(key)`. Die Engine prüft den
   Schlüssel, aktualisiert XP, Level und gegebenenfalls die Streak, schreibt den Abschluss in
   `completed_by_date` und speichert sofort atomar.
-5. **Pausentag und Routineverwaltung**: Die UI ruft `claim_rest_day()`, `add_routine()` oder
-  `update_routine()` auf. Die Engine übernimmt Validierung, Bereinigung ungültiger
-  Abschlussschlüssel und Persistenz.
+5. **Pausentag und Routineverwaltung**: Die UI ruft `claim_rest_day()`, `add_routine()`,
+  `update_routine()` oder `delete_routine()` auf. Die Engine übernimmt Validierung,
+  Bereinigung ungültiger Abschlussschlüssel und Persistenz.
 6. **Aktualisierung**: Nach jeder Benutzeraktion ruft die UI `refresh_ui()` auf. Dadurch werden
   Statistik, XP-Fortschritt und Aufgabenliste aus dem aktuellen Engine-Zustand neu gezeichnet.
 
