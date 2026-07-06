@@ -2,7 +2,7 @@
 
 import tkinter as tk
 import tkinter.font as tkfont
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import messagebox, ttk
 
 from engine import HabitQuestEngine
 
@@ -510,30 +510,100 @@ class HabitQuestApp:
         initial_name: str = "",
         initial_categories_text: str = "",
     ) -> tuple[str, list[tuple[str, list[str]]]] | None:
-        """Ask user for routine name and category/task definition text."""
-        name = simpledialog.askstring(
-            title,
-            "Routine name:",
-            initialvalue=initial_name,
-            parent=self.root,
-        )
-        if name is None:
-            return None
+        """Show a themed modal dialog and return (name, categories) or None."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.configure(bg=COLORS["bg"])
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
 
-        categories_text = simpledialog.askstring(
-            title,
-            (
-                "Categories and tasks (format):\n"
-                "Push: Bench Press, Overhead Press; Pull: Rows, Biceps"
-            ),
-            initialvalue=initial_categories_text,
-            parent=self.root,
-        )
-        if categories_text is None:
-            return None
+        frame = tk.Frame(dialog, bg=COLORS["bg"])
+        frame.pack(fill="both", expand=True, padx=18, pady=18)
 
+        tk.Label(
+            frame,
+            text=title,
+            font=self.font_heading,
+            bg=COLORS["bg"],
+            fg=COLORS["text"],
+        ).pack(anchor="w", pady=(0, 12))
+
+        name_entry = self._make_dialog_entry(frame, "Routine name", initial_name)
+        tasks_entry = self._make_dialog_entry(
+            frame,
+            "Categories and tasks",
+            initial_categories_text,
+            hint="Push: Bench Press, Overhead Press; Pull: Rows, Biceps",
+            width=44,
+        )
+
+        # Collect the raw entry values only when the user confirms.
+        result: dict[str, tuple[str, str] | None] = {"value": None}
+
+        def on_save() -> None:
+            result["value"] = (name_entry.get(), tasks_entry.get())
+            dialog.destroy()
+
+        buttons = tk.Frame(frame, bg=COLORS["bg"])
+        buttons.pack(fill="x", pady=(16, 0))
+        ttk.Button(
+            buttons, text="Cancel", style="Ghost.TButton", command=dialog.destroy
+        ).pack(side="right")
+        ttk.Button(
+            buttons, text="Save", style="Accent.TButton", command=on_save
+        ).pack(side="right", padx=(0, 8))
+
+        name_entry.focus_set()
+        dialog.bind("<Return>", lambda _e: on_save())
+        dialog.bind("<Escape>", lambda _e: dialog.destroy())
+        dialog.grab_set()
+        self.root.wait_window(dialog)
+
+        if result["value"] is None:
+            return None
+        name, categories_text = result["value"]
         categories = self.parse_categories_input(categories_text)
         return name, categories
+
+    def _make_dialog_entry(
+        self,
+        parent: tk.Frame,
+        label: str,
+        initial: str,
+        hint: str = "",
+        width: int = 32,
+    ) -> tk.Entry:
+        """Create a labeled, dark-themed text entry and return the Entry."""
+        tk.Label(
+            parent,
+            text=label,
+            font=self.font_small,
+            bg=COLORS["bg"],
+            fg=COLORS["text_muted"],
+        ).pack(anchor="w")
+        if hint:
+            tk.Label(
+                parent,
+                text=hint,
+                font=self.font_small,
+                bg=COLORS["bg"],
+                fg=COLORS["text_muted"],
+            ).pack(anchor="w")
+        entry = tk.Entry(
+            parent,
+            width=width,
+            font=self.font_body,
+            bg=COLORS["surface"],
+            fg=COLORS["text"],
+            insertbackground=COLORS["text"],
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=COLORS["track"],
+            highlightcolor=COLORS["accent"],
+        )
+        entry.insert(0, initial)
+        entry.pack(fill="x", ipady=6, pady=(2, 12))
+        return entry
 
     @staticmethod
     def parse_categories_input(text: str) -> list[tuple[str, list[str]]]:
