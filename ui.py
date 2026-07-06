@@ -394,36 +394,59 @@ class HabitQuestApp:
         self.engine.claim_rest_day()
         self.refresh_ui()
 
+    # ---- routine manager ------------------------------------------------
+
     def open_routine_manager(self) -> None:
-        """Open a small window for adding and editing routines."""
+        """Open a themed window for adding and editing routines."""
         window = tk.Toplevel(self.root)
         window.title("Manage routines")
-        window.geometry("460x320")
+        window.geometry("480x360")
+        window.configure(bg=COLORS["bg"])
         window.transient(self.root)
 
-        ttk.Label(
+        tk.Label(
             window,
             text="Routines",
-            font=("TkDefaultFont", 10, "bold"),
-        ).pack(anchor="w", padx=10, pady=(10, 0))
+            font=self.font_heading,
+            bg=COLORS["bg"],
+            fg=COLORS["text"],
+        ).pack(anchor="w", padx=16, pady=(16, 8))
 
-        routines_listbox = tk.Listbox(window, height=10)
-        routines_listbox.pack(fill="both", expand=True, padx=10, pady=8)
+        routines_listbox = tk.Listbox(
+            window,
+            height=10,
+            bg=COLORS["surface"],
+            fg=COLORS["text"],
+            selectbackground=COLORS["accent"],
+            selectforeground="#ffffff",
+            highlightthickness=0,
+            borderwidth=0,
+            font=self.font_body,
+            activestyle="none",
+        )
+        routines_listbox.pack(fill="both", expand=True, padx=16, pady=8)
 
-        buttons = ttk.Frame(window)
-        buttons.pack(fill="x", padx=10, pady=(0, 10))
+        buttons = tk.Frame(window, bg=COLORS["bg"])
+        buttons.pack(fill="x", padx=16, pady=(0, 16))
 
         ttk.Button(
             buttons,
             text="Add routine",
+            style="Accent.TButton",
             command=lambda: self.add_routine_from_dialog(routines_listbox),
         ).pack(side="left")
         ttk.Button(
             buttons,
             text="Edit selected",
+            style="Ghost.TButton",
             command=lambda: self.edit_selected_routine(routines_listbox),
         ).pack(side="left", padx=(8, 0))
-        ttk.Button(buttons, text="Close", command=window.destroy).pack(side="right")
+        ttk.Button(
+            buttons,
+            text="Close",
+            style="Ghost.TButton",
+            command=window.destroy,
+        ).pack(side="right")
 
         self.refresh_routine_listbox(routines_listbox)
 
