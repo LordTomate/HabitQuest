@@ -390,9 +390,74 @@ class HabitQuestApp:
         self.refresh_ui()
 
     def claim_rest_day(self) -> None:
-        """Protect today's streak as a rest day and refresh the screen."""
-        self.engine.claim_rest_day()
+        """Protect today's streak as a rest day and show graphical feedback."""
+        claimed = self.engine.claim_rest_day()
         self.refresh_ui()
+        self._show_rest_dialog(claimed)
+
+    def _show_rest_dialog(self, claimed: bool) -> None:
+        """Show a themed popup celebrating (or noting) the rest day."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Rest day")
+        dialog.configure(bg=COLORS["bg"])
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        frame = tk.Frame(dialog, bg=COLORS["bg"])
+        frame.pack(fill="both", expand=True, padx=32, pady=26)
+
+        # Large crescent-moon glyph (BMP so Tk 8.6 can render it).
+        icon_font = tkfont.Font(family=self.font_title.cget("family"), size=46)
+        tk.Label(
+            frame,
+            text="\u263e",
+            font=icon_font,
+            bg=COLORS["bg"],
+            fg=COLORS["accent_soft"],
+        ).pack()
+
+        if claimed:
+            title = "Rest day claimed"
+            message = (
+                f"Your streak is safe at \u2605 {self.engine.profile.streak}.\n"
+                "Recharge and come back strong!"
+            )
+        else:
+            title = "Already resting"
+            message = "Today is already protected.\nEnjoy your break!"
+
+        tk.Label(
+            frame,
+            text=title,
+            font=self.font_heading,
+            bg=COLORS["bg"],
+            fg=COLORS["text"],
+        ).pack(pady=(12, 4))
+        tk.Label(
+            frame,
+            text=message,
+            font=self.font_body,
+            bg=COLORS["bg"],
+            fg=COLORS["text_muted"],
+            justify="center",
+        ).pack()
+
+        ttk.Button(
+            frame, text="Nice", style="Accent.TButton", command=dialog.destroy
+        ).pack(pady=(20, 0))
+
+        dialog.bind("<Return>", lambda _e: dialog.destroy())
+        dialog.bind("<Escape>", lambda _e: dialog.destroy())
+        dialog.grab_set()
+        self._center_over_root(dialog)
+        self.root.wait_window(dialog)
+
+    def _center_over_root(self, window: tk.Toplevel) -> None:
+        """Position a Toplevel centered over the main window."""
+        window.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - window.winfo_width()) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - window.winfo_height()) // 2
+        window.geometry(f"+{max(x, 0)}+{max(y, 0)}")
 
     # ---- routine manager ------------------------------------------------
 
