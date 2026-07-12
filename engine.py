@@ -151,10 +151,16 @@ class HabitQuestEngine:
         os.replace(temp_name, self.save_path)
 
     def load_data(self) -> None:
-        """Load state from disk, or initialize default data if no save exists yet."""
+        """Load state, preserving malformed saves before using default data."""
         if self.save_path.exists():
-            with self.save_path.open("r", encoding="utf-8") as save_file:
-                data = json.load(save_file)
+            try:
+                with self.save_path.open("r", encoding="utf-8") as save_file:
+                    data = json.load(save_file)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # Keep the invalid file available for inspection or recovery.
+                corrupt_path = Path(f"{self.save_path}.corrupt")
+                os.replace(self.save_path, corrupt_path)
+                data = self.get_default_data()
         else:
             data = self.get_default_data()
 
