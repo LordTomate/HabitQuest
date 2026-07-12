@@ -182,6 +182,34 @@ class HabitQuestEngine:
         """Return all task keys scheduled for today."""
         return {task["key"] for task in self.get_today_tasks()}
 
+    def get_cycle_overview(self) -> list[dict[str, Any]]:
+        """Return each active routine's position in its cycle and what follows.
+
+        For every non-paused routine this reports the current category, the
+        1-based day within the cycle, the cycle length, and the ordered list
+        of upcoming categories. The UI uses this to make the rotation visible.
+        """
+        overview: list[dict[str, Any]] = []
+        for routine in self.routines.values():
+            if routine.paused:
+                continue
+            length = len(routine.categories)
+            position = routine.day_index % length
+            upcoming = [
+                routine.categories[(position + offset) % length].name
+                for offset in range(1, length)
+            ]
+            overview.append(
+                {
+                    "routine": routine.name,
+                    "current": routine.current_category.name,
+                    "position": position + 1,
+                    "length": length,
+                    "upcoming": upcoming,
+                }
+            )
+        return overview
+
     def get_today_tasks(self) -> list[dict[str, str]]:
         """Return display-ready task information for all active routines today."""
         tasks: list[dict[str, str]] = []

@@ -93,6 +93,25 @@ class TestHabitQuestEngine(unittest.TestCase):
 
         self.assertEqual(task_names, ["Rows", "Lat Pulldown", "Biceps"])
 
+    def test_cycle_overview_reports_position_and_upcoming(self) -> None:
+        """The cycle overview should expose the current day and what follows."""
+        start = self.engine.get_cycle_overview()
+
+        self.assertEqual(len(start), 1)
+        self.assertEqual(start[0]["current"], "Push")
+        self.assertEqual(start[0]["position"], 1)
+        self.assertEqual(start[0]["length"], 3)
+        self.assertEqual(start[0]["upcoming"], ["Pull", "Legs"])
+
+        # Advancing the cycle should rotate both the position and the preview.
+        self.clock.current_day = date(2026, 1, 2)
+        self.engine.check_new_day()
+        after = self.engine.get_cycle_overview()
+
+        self.assertEqual(after[0]["current"], "Pull")
+        self.assertEqual(after[0]["position"], 2)
+        self.assertEqual(after[0]["upcoming"], ["Legs", "Push"])
+
     def test_unknown_task_key_is_rejected(self) -> None:
         """Invalid task keys fail loudly instead of corrupting progress data."""
         with self.assertRaises(ValueError):
