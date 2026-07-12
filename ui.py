@@ -1,10 +1,16 @@
 """Tkinter user interface for HabitQuest with a modern dark theme."""
 
+import os
 import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import messagebox, ttk
 
 from engine import HabitQuestEngine
+
+# Directory holding bundled images (mascot / icon). Resolved relative to this
+# file so the app works no matter what the current working directory is.
+ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+MASCOT_FILE = "mascot.png"
 
 # Central color palette for the dark "riced" theme. Keeping every color in one
 # place makes it trivial to re-theme the whole app from a single spot.
@@ -47,11 +53,45 @@ class HabitQuestApp:
 
         self._setup_fonts()
         self._setup_styles()
+        self._load_images()
         self._build_layout()
 
         self.refresh_ui()
 
     # ---- theme setup ----------------------------------------------------
+
+    def _load_images(self) -> None:
+        """Load the mascot artwork and use it as window/taskbar icon.
+
+        Tk keeps only a weak reference to PhotoImages, so we store them on
+        the instance to stop them from being garbage-collected (which would
+        make the pictures disappear). If the file is missing we degrade
+        gracefully to the text-only UI instead of crashing.
+        """
+        self.mascot_image = None
+        self.icon_image = None
+        path = os.path.join(ASSET_DIR, MASCOT_FILE)
+        if not os.path.exists(path):
+            return
+
+        try:
+            original = tk.PhotoImage(file=path)
+        except tk.TclError:
+            # Unsupported format or corrupt file: skip the imagery quietly.
+            return
+
+        # PhotoImage.subsample only shrinks by whole-number factors, so we
+        # round to the nearest factor that lands near the desired pixel size.
+        self.mascot_image = self._subsample_to(original, target_width=56)
+        self.icon_image = self._subsample_to(original, target_width=64)
+        # Set the icon for the title bar / taskbar (True => also for children).
+        self.root.iconphoto(True, self.icon_image)
+
+    @staticmethod
+    def _subsample_to(image: tk.PhotoImage, target_width: int) -> tk.PhotoImage:
+        """Return a copy of `image` scaled down close to `target_width` px."""
+        factor = max(1, round(image.width() / target_width))
+        return image.subsample(factor, factor) if factor > 1 else image
 
     def _setup_fonts(self) -> None:
         """Pick the nicest available font family and derive named fonts."""
@@ -100,14 +140,22 @@ class HabitQuestApp:
         container = tk.Frame(self.root, bg=COLORS["bg"])
         container.pack(fill="both", expand=True, padx=18, pady=18)
 
-        # Title bar.
+        # Title bar: mascot artwork (if available) alongside the app name.
+        title_bar = tk.Frame(container, bg=COLORS["bg"])
+        title_bar.pack(fill="x")
+        if self.mascot_image is not None:
+            tk.Label(
+                title_bar,
+                image=self.mascot_image,
+                bg=COLORS["bg"],
+            ).pack(side="left", padx=(0, 10))
         tk.Label(
-            container,
-            text="\u2694  HabitQuest",
+            title_bar,
+            text="HabitQuest",
             font=self.font_title,
             bg=COLORS["bg"],
             fg=COLORS["text"],
-        ).pack(anchor="w")
+        ).pack(side="left")
 
         # Stat cards row (Level / XP / Streak).
         stats = tk.Frame(container, bg=COLORS["bg"])
