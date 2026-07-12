@@ -5,9 +5,10 @@ import tempfile
 import tkinter as tk
 import unittest
 from datetime import date
+from unittest.mock import Mock, patch
 
 from engine import HabitQuestEngine
-from ui import HabitQuestApp
+from ui import HabitQuestApp, force_dark_window_decorations
 
 
 class FakeClock:
@@ -148,6 +149,44 @@ class TestRoutineInputParsing(unittest.TestCase):
             HabitQuestApp.parse_categories_input("Push Bench Press")
 
 
+class TestWindowDecorations(unittest.TestCase):
+    """Tests for requesting native dark window borders."""
+
+    @patch("ui.sys.platform", "linux")
+    @patch("ui.shutil.which", side_effect=lambda name: f"/usr/bin/{name}")
+    @patch("ui.subprocess.run")
+    def test_x11_requests_dark_system_decorations(
+        self, run: Mock, _which: Mock
+    ) -> None:
+        """X11 should receive the dark hint on Tk and its native parents."""
+        window = Mock()
+        window.tk.call.return_value = "x11"
+        window.winfo_id.return_value = 0x123
+        run.side_effect = [
+            Mock(stdout="Parent window id: 0x456 (has no name)\n"),
+            Mock(stdout="Parent window id: 0x789 (has no name)\n"),
+            Mock(returncode=0),
+            Mock(returncode=0),
+            Mock(returncode=0),
+        ]
+
+        applied = force_dark_window_decorations(window)
+
+        self.assertTrue(applied)
+        commands = [call.args[0] for call in run.call_args_list]
+        xprop_commands = commands[2:]
+        self.assertEqual(
+            [command[2] for command in xprop_commands],
+            ["0x123", "0x456", "0x789"],
+        )
+        self.assertTrue(
+            all(
+                command[-3:] == ["-set", "_GTK_THEME_VARIANT", "dark"]
+                for command in xprop_commands
+            )
+        )
+
+
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Tkinter UI tests need a display")
 class TestHabitQuestApp(unittest.TestCase):
     """Smoke tests for the Tkinter UI wiring."""
@@ -161,6 +200,7 @@ class TestHabitQuestApp(unittest.TestCase):
             today_provider=self.clock.today,
         )
         self.root = tk.Tk()
+        self.root.withdraw()
         self.app = HabitQuestApp(self.root, self.engine)
 
     def tearDown(self) -> None:

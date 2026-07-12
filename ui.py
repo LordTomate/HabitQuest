@@ -1,8 +1,12 @@
 """Tkinter user interface for HabitQuest with a modern dark theme."""
 
 import os
+import shutil
+import subprocess
+import sys
 import tkinter as tk
 import tkinter.font as tkfont
+from collections.abc import Callable
 from tkinter import messagebox, ttk
 
 from engine import HabitQuestEngine
@@ -39,24 +43,136 @@ PREFERRED_FONTS = (
 )
 
 
+def _x11_window_ids(window: tk.Tk | tk.Toplevel) -> list[str]:
+    """Return Tk's X11 window ID followed by up to two native parents."""
+    window_ids = [hex(window.winfo_id())]
+    xwininfo = shutil.which("xwininfo")
+    if xwininfo is None:
+        return window_ids
+
+    current_id = window_ids[0]
+    for _level in range(2):
+        try:
+            result = subprocess.run(
+                [xwininfo, "-id", current_id, "-tree"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+        except (OSError, subprocess.SubprocessError):
+            break
+
+        parent_id = ""
+        for line in result.stdout.splitlines():
+            if "Parent window id:" in line:
+                parent_id = line.split("Parent window id:", 1)[1].split()[0]
+                break
+        if not parent_id or parent_id in window_ids:
+            break
+        window_ids.append(parent_id)
+        current_id = parent_id
+
+    return window_ids
+
+
+def _is_wslg() -> bool:
+    """Return whether the app is running through WSLg."""
+    return bool(os.environ.get("WSL_DISTRO_NAME") and os.environ.get("WAYLAND_DISPLAY"))
+
+
+def force_dark_window_decorations(window: tk.Tk | tk.Toplevel) -> bool:
+    """Ask the operating system to draw a dark title bar and border.
+
+    Tk does not expose native decoration colors. Windows provides a DWM
+    attribute, while Linux compositors commonly honor `_GTK_THEME_VARIANT`.
+    Unsupported systems quietly keep their default decorations.
+    """
+    window.update_idletasks()
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            window_id = window.winfo_id()
+            handle = ctypes.windll.user32.GetParent(window_id) or window_id
+            enabled = ctypes.c_int(1)
+            # Attribute 20 is current; 19 supports older Windows 10 builds.
+            for attribute in (20, 19):
+                result = ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    handle,
+                    attribute,
+                    ctypes.byref(enabled),
+                    ctypes.sizeof(enabled),
+                )
+                if result == 0:
+                    return True
+        except (AttributeError, OSError, tk.TclError):
+            return False
+        return False
+
+    try:
+        if window.tk.call("tk", "windowingsystem") != "x11":
+            return False
+        xprop = shutil.which("xprop")
+        if xprop is None:
+            return False
+        applied = False
+        # WSLg decorates parent windows rather than Tk's inner widget window.
+        for window_id in _x11_window_ids(window):
+            result = subprocess.run(
+                [
+                    xprop,
+                    "-id",
+                    window_id,
+                    "-f",
+                    "_GTK_THEME_VARIANT",
+                    "8u",
+                    "-set",
+                    "_GTK_THEME_VARIANT",
+                    "dark",
+                ],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=1,
+            )
+            applied = result.returncode == 0 or applied
+        return applied
+    except (OSError, subprocess.SubprocessError, tk.TclError):
+        return False
+
+
 class HabitQuestApp:
     """Shows today's tasks and delegates state changes to the engine."""
 
     def __init__(self, root: tk.Tk, engine: HabitQuestEngine | None = None) -> None:
         self.root = root
         self.engine = engine or HabitQuestEngine()
+        self.uses_custom_decorations = _is_wslg()
+        self._drag_offset = (0, 0)
+        self._is_maximized = False
+        self._restore_geometry = ""
+        self._restore_custom_chrome_on_map = False
 
         self.root.title("HabitQuest")
-        self.root.geometry("440x640")
-        self.root.minsize(400, 560)
-        self.root.configure(bg=COLORS["bg"])
+        self.root.geometry("440x674" if self.uses_custom_decorations else "440x640")
+        self.root.minsize(400, 594 if self.uses_custom_decorations else 560)
+        self.root.configure(
+            bg=COLORS["track"] if self.uses_custom_decorations else COLORS["bg"]
+        )
+        if self.uses_custom_decorations:
+            self.root.overrideredirect(True)
 
         self._setup_fonts()
         self._setup_styles()
         self._load_images()
+        self._build_window_chrome()
         self._build_layout()
 
         self.refresh_ui()
+        if not self.uses_custom_decorations:
+            force_dark_window_decorations(self.root)
 
     # ---- theme setup ----------------------------------------------------
 
@@ -133,11 +249,130 @@ class HabitQuestApp:
         )
         style.map("Ghost.TButton", background=[("active", COLORS["track"])])
 
+    def _build_window_chrome(self) -> None:
+        """Build a dark draggable title bar when WSLg ignores theme hints."""
+        self.content_root: tk.Misc = self.root
+        if not self.uses_custom_decorations:
+            return
+
+        title_bar = tk.Frame(
+            self.root,
+            height=34,
+            bg=COLORS["surface"],
+            cursor="fleur",
+        )
+        title_bar.pack(fill="x", padx=1, pady=(1, 0))
+        title_bar.pack_propagate(False)
+
+        title_label = tk.Label(
+            title_bar,
+            text="HabitQuest",
+            font=self.font_small,
+            bg=COLORS["surface"],
+            fg=COLORS["text"],
+        )
+        title_label.pack(side="left", padx=12)
+
+        def make_control(
+            text: str,
+            command: Callable[[], None],
+            hover_background: str = COLORS["surface_alt"],
+        ) -> tk.Button:
+            """Add one native-like control to the custom title bar."""
+            button = tk.Button(
+                title_bar,
+                text=text,
+                command=command,
+                font=self.font_body,
+                bg=COLORS["surface"],
+                fg=COLORS["text_muted"],
+                activebackground=hover_background,
+                activeforeground="#ffffff",
+                relief="flat",
+                borderwidth=0,
+                width=4,
+                cursor="arrow",
+            )
+            button.pack(side="right", fill="y")
+            button.bind(
+                "<Enter>", lambda _event: button.configure(bg=hover_background)
+            )
+            button.bind(
+                "<Leave>", lambda _event: button.configure(bg=COLORS["surface"])
+            )
+            return button
+
+        make_control("×", self.root.destroy, "#c42b1c")
+        self.maximize_button = make_control("□", self._toggle_maximize)
+        make_control("−", self._minimize_window)
+
+        for widget in (title_bar, title_label):
+            widget.bind("<ButtonPress-1>", self._start_window_drag)
+            widget.bind("<B1-Motion>", self._drag_window)
+            widget.bind("<Double-Button-1>", lambda _event: self._toggle_maximize())
+        self.root.bind("<Map>", self._restore_custom_chrome)
+
+        self.content_root = tk.Frame(self.root, bg=COLORS["bg"])
+        self.content_root.pack(fill="both", expand=True, padx=1, pady=(0, 1))
+
+    def _start_window_drag(self, event: tk.Event) -> None:
+        """Remember the pointer offset used to drag custom WSLg chrome."""
+        if self._is_maximized:
+            pointer_fraction = event.x_root / max(self.root.winfo_width(), 1)
+            self._toggle_maximize()
+            self.root.update_idletasks()
+            self.root.geometry(
+                f"+{round(event.x_root - self.root.winfo_width() * pointer_fraction)}"
+                f"+{max(event.y_root - 16, 0)}"
+            )
+        self._drag_offset = (
+            event.x_root - self.root.winfo_x(),
+            event.y_root - self.root.winfo_y(),
+        )
+
+    def _drag_window(self, event: tk.Event) -> None:
+        """Move the custom-decorated WSLg window with the pointer."""
+        x = event.x_root - self._drag_offset[0]
+        y = event.y_root - self._drag_offset[1]
+        self.root.geometry(f"+{x}+{y}")
+
+    def _toggle_maximize(self) -> None:
+        """Toggle custom WSLg chrome between maximized and restored sizes."""
+        if self._is_maximized:
+            self.root.geometry(self._restore_geometry)
+        else:
+            self._restore_geometry = self.root.geometry()
+            self.root.geometry(
+                f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0"
+            )
+        self._is_maximized = not self._is_maximized
+        self.maximize_button.configure(text="❐" if self._is_maximized else "□")
+
+    def _minimize_window(self) -> None:
+        """Keep native management active while WSLg is minimized."""
+        self._restore_custom_chrome_on_map = True
+        self.root.overrideredirect(False)
+        self.root.iconify()
+
+    def _restore_custom_chrome(self, event: tk.Event) -> None:
+        """Reapply custom chrome after WSLg restores a minimized window."""
+        if event.widget is not self.root or not self._restore_custom_chrome_on_map:
+            return
+        self._restore_custom_chrome_on_map = False
+        self.root.after_idle(lambda: self.root.overrideredirect(True))
+
+    def _prepare_toplevel(self, window: tk.Toplevel) -> None:
+        """Apply the appropriate native or WSLg decoration treatment."""
+        if self.uses_custom_decorations:
+            window.overrideredirect(True)
+        else:
+            force_dark_window_decorations(window)
+
     # ---- layout ---------------------------------------------------------
 
     def _build_layout(self) -> None:
         """Assemble the static widget tree once; content is filled on refresh."""
-        container = tk.Frame(self.root, bg=COLORS["bg"])
+        container = tk.Frame(self.content_root, bg=COLORS["bg"])
         container.pack(fill="both", expand=True, padx=18, pady=18)
 
         # Title bar: mascot artwork (if available) alongside the app name.
@@ -269,6 +504,8 @@ class HabitQuestApp:
             "<MouseWheel>",
             lambda e: canvas.yview_scroll(int(-e.delta / 120), "units"),
         )
+        canvas.bind_all("<Button-4>", lambda _e: canvas.yview_scroll(-1, "units"))
+        canvas.bind_all("<Button-5>", lambda _e: canvas.yview_scroll(1, "units"))
 
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -510,6 +747,7 @@ class HabitQuestApp:
         dialog.bind("<Escape>", lambda _e: dialog.destroy())
         dialog.grab_set()
         self._center_over_root(dialog)
+        self._prepare_toplevel(dialog)
         self.root.wait_window(dialog)
 
     def _center_over_root(self, window: tk.Toplevel) -> None:
@@ -580,6 +818,9 @@ class HabitQuestApp:
         ).pack(side="right")
 
         self.refresh_routine_listbox(routines_listbox)
+        if self.uses_custom_decorations:
+            self._center_over_root(window)
+        self._prepare_toplevel(window)
 
     def refresh_routine_listbox(self, routines_listbox: tk.Listbox) -> None:
         """Refresh the routine names shown in the manager window."""
@@ -688,6 +929,9 @@ class HabitQuestApp:
         dialog.bind("<Return>", lambda _e: on_save())
         dialog.bind("<Escape>", lambda _e: dialog.destroy())
         dialog.grab_set()
+        if self.uses_custom_decorations:
+            self._center_over_root(dialog)
+        self._prepare_toplevel(dialog)
         self.root.wait_window(dialog)
 
         if result["value"] is None:
