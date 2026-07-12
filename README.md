@@ -86,13 +86,6 @@ Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
    Der zweite Befehl öffnet ein kleines Tkinter-Testfenster. Schließe es, nachdem die Prüfung
    erfolgreich war.
 
-4. Starte die App oder die Tests:
-
-  ```powershell
-  py ui.py
-  py -m unittest test_habit_quest.py
-  ```
-
 ### Windows: Option B – Conda
 
 Mit installierter Miniconda oder Anaconda kann die Umgebung in der **Anaconda Prompt** oder in
@@ -101,8 +94,6 @@ PowerShell erstellt werden:
 ```powershell
 conda env create -f environment.yaml
 conda activate habitquest
-python ui.py
-python -m unittest test_habit_quest.py
 ```
 
 Wenn die Umgebung bereits existiert, ersetze den ersten Befehl durch
@@ -110,7 +101,9 @@ Wenn die Umgebung bereits existiert, ersetze den ersten Befehl durch
 
 ### Start und Tests
 
-Nach dem Linux-Setup über Option A oder B kann die Anwendung gestartet werden:
+#### Linux / macOS
+
+Nach dem Setup kann die Anwendung gestartet werden:
 
 ```bash
 python3 ui.py
@@ -128,6 +121,16 @@ Linux können mit `xvfb` auch diese UI-Tests headless ausgeführt werden:
 ```bash
 sudo apt-get install -y xvfb
 xvfb-run python3 -m unittest test_habit_quest.py
+```
+
+#### Windows
+
+Aktiviere zuerst die in der Windows-Setup-Anleitung erstellte Umgebung. Danach kann die Anwendung
+in PowerShell gestartet und getestet werden:
+
+```powershell
+py ui.py
+py -m unittest test_habit_quest.py
 ```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
