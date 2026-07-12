@@ -1,6 +1,7 @@
 konzept.pdf
 # Generated local save data.
 habitquest_data.json
+*.pptx
 .*
 !.gitignore
 !.gitattributes
