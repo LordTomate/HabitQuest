@@ -16,6 +16,10 @@ from engine import HabitQuestEngine
 ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 MASCOT_FILE = "mascot.png"
 
+# Pixels reserved at the bottom of the screen when maximizing the borderless
+# WSLg window, so the footer buttons stay clear of the OS taskbar.
+TASKBAR_MARGIN = 48
+
 # Central color palette for the dark "riced" theme. Keeping every color in one
 # place makes it trivial to re-theme the whole app from a single spot.
 COLORS = {
@@ -377,9 +381,12 @@ class HabitQuestApp:
             self.root.geometry(self._restore_geometry)
         else:
             self._restore_geometry = self.root.geometry()
-            self.root.geometry(
-                f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0"
-            )
+            # Leave room for the OS taskbar so the footer buttons stay on-screen
+            # and clickable; a borderless window sized to the full screen height
+            # extends behind the taskbar.
+            width = self.root.winfo_screenwidth()
+            height = self.root.winfo_screenheight() - TASKBAR_MARGIN
+            self.root.geometry(f"{width}x{height}+0+0")
         self._is_maximized = not self._is_maximized
         self.maximize_button.configure(text="❐" if self._is_maximized else "□")
 
@@ -474,9 +481,10 @@ class HabitQuestApp:
         # Scrollable task area (handles routines with many tasks).
         self.tasks_frame = self._make_scrollable(container)
 
-        # Footer action buttons.
+        # Footer action buttons. Anchored to the bottom so they always keep
+        # their slot even when the task list grows tall.
         footer = tk.Frame(container, bg=COLORS["bg"])
-        footer.pack(fill="x", pady=(14, 0))
+        footer.pack(side="bottom", fill="x", pady=(14, 0))
         ttk.Button(
             footer,
             text="Manage routines",
