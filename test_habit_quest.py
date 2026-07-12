@@ -84,6 +84,27 @@ class TestHabitQuestEngine(unittest.TestCase):
         self.assertEqual(self.engine.profile.last_completed_date, "2026-01-01")
         self.assertEqual(self.engine.profile.last_all_done_date, "2026-01-01")
 
+    def test_rest_day_after_completed_tasks_does_not_duplicate_day(self) -> None:
+        """A completed day cannot also be claimed as a separate rest day."""
+        for task_key in sorted(self.engine.get_all_today_task_keys()):
+            self.engine.toggle_task(task_key)
+
+        claimed = self.engine.claim_rest_day()
+
+        self.assertFalse(claimed)
+        self.assertEqual(self.engine.profile.streak, 1)
+        self.assertEqual(len(self.engine.profile.history), 1)
+
+    def test_missing_a_day_resets_the_streak(self) -> None:
+        """Opening the app after an unprotected day should reset the streak."""
+        for task_key in sorted(self.engine.get_all_today_task_keys()):
+            self.engine.toggle_task(task_key)
+        self.clock.current_day = date(2026, 1, 3)
+
+        self.engine.check_new_day()
+
+        self.assertEqual(self.engine.profile.streak, 0)
+
     def test_new_day_advances_routine_cycle(self) -> None:
         """Opening the app on a later day moves the routine to the next category."""
         self.clock.current_day = date(2026, 1, 2)
@@ -92,6 +113,39 @@ class TestHabitQuestEngine(unittest.TestCase):
         task_names = [task["task"] for task in self.engine.get_today_tasks()]
 
         self.assertEqual(task_names, ["Rows", "Lat Pulldown", "Biceps"])
+
+    def test_new_day_does_not_advance_paused_routine(self) -> None:
+        """Paused routines should retain their current cycle position."""
+        self.engine.update_routine(
+            current_name="Training",
+            new_name="Training",
+            categories=[
+                ("Push", ["Bench Press"]),
+                ("Pull", ["Rows"]),
+            ],
+            paused=True,
+        )
+        self.clock.current_day = date(2026, 1, 2)
+
+        self.engine.check_new_day()
+
+        self.assertEqual(self.engine.routines["Training"].day_index, 0)
+        self.assertEqual(self.engine.get_today_tasks(), [])
+
+    def test_corrupt_save_recovers_defaults_and_preserves_backup(self) -> None:
+        """Malformed JSON should not prevent startup or destroy the bad save."""
+        save_path = os.path.join(self.temp_dir.name, "corrupt.json")
+        with open(save_path, "w", encoding="utf-8") as save_file:
+            save_file.write('{"profile":')
+
+        recovered = HabitQuestEngine(
+            save_path=save_path,
+            today_provider=self.clock.today,
+        )
+
+        task_names = [task["task"] for task in recovered.get_today_tasks()]
+        self.assertEqual(task_names, ["Bench Press", "Overhead Press", "Triceps"])
+        self.assertTrue(os.path.exists(f"{save_path}.corrupt"))
 
     def test_cycle_overview_reports_position_and_upcoming(self) -> None:
         """The cycle overview should expose the current day and what follows."""
