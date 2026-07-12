@@ -6,9 +6,9 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
 
 - [Setup](#setup)
 1. [Konzeptionelle Beschreibung des Use-Cases](#1-konzeptionelle-beschreibung-des-use-cases)
-   1. [Geplante Architektur und Klassen](#11-geplante-architektur-und-klassen)
+  1. [Architektur und Klassen (Ist-Stand)](#11-architektur-und-klassen-ist-stand)
    2. [Interaktion der Objekte](#12-interaktion-der-objekte)
-   3. [Geplante Attribute und Methoden](#13-geplante-attribute-und-methoden)
+  3. [Wichtige Attribute und Methoden](#13-wichtige-attribute-und-methoden)
 2. [Coding-Guidelines](#2-coding-guidelines)
 3. [Aufwandsschätzung](#3-aufwandsschätzung)
 4. [Geplante Implementierung und Versionsverwaltung](#4-geplante-implementierung-und-versionsverwaltung)
@@ -18,33 +18,65 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
 
 ## Setup
 
-Bevor der Code ausgeführt werden kann, sind folgende Schritte notwendig:
+Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
+
+### Option A: venv + pip
 
 1. Virtuelle Umgebung erstellen und aktivieren:
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
-2. Tkinter installieren. Es wird für die GUI benötigt, ist aber ein Systempaket und kein
-   Python-Paket, das über pip installiert werden könnte:
+2. Setup-Skript ausführen (installiert `requirements.txt` und prüft Tkinter):
 
-   ```bash
-   sudo apt-get install -y python3-tk
-   ```
+  ```bash
+  bash scripts/setup.sh
+  ```
 
-3. Anwendung starten:
+3. Falls Tkinter auf deinem System nicht automatisch installiert werden konnte,
+  installiere es manuell. Es ist ein Systempaket und kein Python-Paket:
 
-   ```bash
-   python ui.py
-   ```
+  ```bash
+  sudo apt-get install -y python3-tk
+  ```
 
-4. Tests ausführen:
+### Option B: Conda (inklusive Tkinter)
 
-   ```bash
-   python -m unittest test_habit_quest.py
-   ```
+1. Conda-Umgebung aus `environment.yaml` erstellen/aktualisieren:
+
+  ```bash
+  bash scripts/setup_conda.sh
+  ```
+
+2. Falls du die Umgebung manuell aktivieren willst:
+
+  ```bash
+  conda activate habitquest
+  ```
+
+### Start und Tests
+
+Nach dem Setup über Option A oder B kann die Anwendung gestartet werden:
+
+```bash
+python3 ui.py
+```
+
+Die vollständige Testsuite wird mit folgendem Befehl ausgeführt:
+
+```bash
+python3 -m unittest test_habit_quest.py
+```
+
+Ohne grafische Display-Umgebung werden die Tkinter-Smoke-Tests automatisch übersprungen. Unter
+Linux können mit `xvfb` auch diese UI-Tests headless ausgeführt werden:
+
+```bash
+sudo apt-get install -y xvfb
+xvfb-run python3 -m unittest test_habit_quest.py
+```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
 
@@ -59,96 +91,127 @@ Erfahrungspunkte. Schafft man es, alle Aufgaben an einem Tag zu erledigen, steig
 (die Serie) an. Im Laufe der Zeit rotiert der Plan automatisch weiter, sodass man sich nicht jeden
 Tag manuell überlegen muss, was eigentlich ansteht.
 
-### 1.1 Geplante Architektur und Klassen
+### 1.1 Architektur und Klassen (Ist-Stand)
 
-Bei der Konzeption ist es wichtig, dass das Softwaredesign modular bleibt. Daher wird die
-grafische Benutzeroberfläche strikt von den eigentlichen Daten und Berechnungen getrennt:
+Die Umsetzung trennt die grafische Benutzeroberfläche weiterhin strikt von Datenmodell und
+Geschäftslogik. Das Diagramm zeigt den aktuellen Stand des MVPs. Kleinere Rendering- und
+Fenster-Helper der UI sind bewusst nicht enthalten, damit die fachlichen Beziehungen lesbar
+bleiben.
 
-- **Datenmodelle (`models.py`)**: Die Klassen `Routine`, `Category` und `UserProfile` werden als
-  Python `dataclasses` umgesetzt. Das hält das Zustandsmodell übersichtlich und erspart viel
-  redundanten Code (Boilerplate). `Routine` bündelt beispielsweise alle Infos zu einem
-  Trainingsplan, damit sich diese Logik nicht in die UI einschleicht.
-- **Geschäftslogik (`engine.py`)**: Das Herzstück der Architektur bildet die `HabitQuestEngine`.
-  Sie ist für das Speichern und Laden der Daten sowie für die Mathematik hinter den Streaks und
-  XP zuständig. Diese Trennung ist praktisch, weil sich die Engine so später leicht automatisiert
-  testen lässt, ohne dass die GUI geladen werden muss. Abgeschlossene Aufgaben werden als `set`
-  gespeichert, um effizient prüfen zu können, ob eine Aufgabe schon erledigt wurde, und doppelte
-  Einträge von vornherein zu verhindern.
-- **Benutzeroberfläche (`ui.py`)**: Die `HabitQuestApp` zeichnet lediglich das Fenster, fängt
-  Mausklicks ab und reicht diese Befehle an die Engine weiter. Sie merkt sich selbst keine
-  Spieldaten.
+- **Datenmodelle (`models.py`)**: `Category`, `Routine` und `UserProfile` sind Python-
+  `dataclasses`. Sie validieren ihre Eingaben und wandeln sich über `to_dict()` bzw.
+  `from_dict()` in JSON-kompatible Daten um.
+- **Geschäftslogik (`engine.py`)**: `HabitQuestEngine` verwaltet die Routinen, den aktuellen
+  Nutzerfortschritt sowie Aufgabenabschlüsse pro Datum. Die Engine berechnet XP und Streaks,
+  verarbeitet Tageswechsel und speichert atomar in einer JSON-Datei.
+- **Benutzeroberfläche (`ui.py`)**: `HabitQuestApp` erstellt die Tkinter-Oberfläche, zeigt den
+  Zustand der Engine an und delegiert Aktionen wie das Abhaken von Aufgaben oder die
+  Routineverwaltung an die Engine. Die UI hält keine fachlichen Spieldaten selbst.
 
 **Warum Tkinter?** Als UI-Framework wird Tkinter genutzt. Das passt gut, da es direkt in der
 Python-Standardbibliothek enthalten ist, keine externen Installationen erfordert und völlig
 ausreicht, um saubere Architektur-Konzepte wie MVC zu demonstrieren.
 
-#### UML-Klassendiagramm der geplanten OOP-Architektur
+#### UML-Klassendiagramm der aktuellen OOP-Architektur
 
+```mermaid
+classDiagram
+    class HabitQuestApp {
+        +root: Tk
+        +engine: HabitQuestEngine
+        +refresh_ui()
+        +rebuild_tasks()
+        +refresh_status()
+        +toggle_task(task_key)
+        +claim_rest_day()
+        +open_routine_manager()
+        +parse_categories_input(text) list
+    }
+
+    class HabitQuestEngine {
+        +save_path: Path
+        +today_provider: Callable
+        +profile: UserProfile
+        +routines: dict
+        +completed_by_date: dict
+        +completed_today: set
+        +get_today_tasks() list
+        +toggle_task(task_key) bool
+        +check_new_day()
+        +claim_rest_day() bool
+        +add_routine(name, categories) Routine
+        +update_routine(name, new_name, categories) Routine
+        +save_data()
+        +load_data()
+    }
+
+    class Routine {
+        +name: str
+        +categories: list
+        +day_index: int
+        +paused: bool
+        +current_category: Category
+        +advance_days(days)
+        +to_dict() dict
+        +from_dict(name, data) Routine
+    }
+
+    class Category {
+        +name: str
+        +tasks: list
+        +to_dict() dict
+        +from_dict(data) Category
+    }
+
+    class UserProfile {
+        +xp: int
+        +level: int
+        +streak: int
+        +last_checked_date: str
+        +last_all_done_date: str
+        +last_completed_date: str
+        +history: list
+        +to_dict() dict
+        +from_dict(data) UserProfile
+    }
+
+    HabitQuestApp --> HabitQuestEngine : nutzt
+    HabitQuestEngine "1" *-- "1" UserProfile : besitzt
+    HabitQuestEngine "1" *-- "0..*" Routine : verwaltet
+    Routine "1" *-- "1..*" Category : enthält
 ```
-HabitQuestEngine
-  + profile: UserProfile
-  + routines: dict
-  + completed_today: set
-  + get_default_data()
-  + xp_for_level(level: int)
-  + total_xp_to_reach_level(level: int)
-  + check_new_day()
-  + load_today_completions()
-  + calc_xp_reward()
-  + toggle_task(task_key: str)
-  + save_data()
-  + load_data()
-  + get_all_today_task_keys()
-  + claim_rest_day()
 
-HabitQuestApp
-  + engine: HabitQuestEngine
-  + refresh_ui()
-  + rebuild_tasks()
-
-UserProfile
-  + xp: int
-  + level: int
-  + streak: int
-  + last_checked_date: str
-  + last_all_done_date: str
-  + last_completed_date: str
-  + history: list
-  + from_dict(data)
-
-Routine
-  + name: str
-  + categories: list
-  + day_index: int
-  + paused: bool
-  + to_dict()
-  + from_dict(name, data)
-```
-
-Beziehungen: `HabitQuestApp` **nutzt** `HabitQuestEngine` (1:1); `HabitQuestEngine` **verwaltet**
-`Routine` (1:*) und **besitzt** `UserProfile` (1:1).
+`HabitQuestEngine` verwendet zusätzlich eine lokale JSON-Datei als Persistenzschicht.
+`completed_by_date` speichert Aufgabenabschlüsse je ISO-Datum; `completed_today` ist die
+in-memory-Ansicht für den aktuellen Tag. Die Factory-Methoden `from_dict()` sind Klassenmethoden.
 
 ### 1.2 Interaktion der Objekte
 
 Die Architektur orientiert sich an einer strikten Trennung von Präsentation, Geschäftslogik und
-Datenmodell. Das Zusammenspiel ist wie folgt geplant:
+Datenmodell. Das Zusammenspiel funktioniert aktuell wie folgt:
 
-1. **Initialisierung**: Startet man die App, wird zuerst in `habit_quest.py` die
-   `HabitQuestEngine` ins Leben gerufen, die sich über `load_data()` die Speicherstände holt. Erst
-   danach startet die `HabitQuestApp` und bekommt die Engine übergeben.
-2. **Echtzeit-Synchronisierung**: Die Methode `check_new_day()` prüft, wie viele Tage seit dem
-   letzten Öffnen vergangen sind, und schiebt den Zyklus der Routinen entsprechend weiter.
-3. **Event-Handling**: Klickt man auf eine Aufgabe, rechnet die UI nicht selbst, sondern delegiert
-   dies an `engine.toggle_task(key)`.
-4. **Statusänderung und Persistenz**: In `toggle_task()` ändert sich der Status, XP werden
-   berechnet und am Ende wird sofort `save_data()` ausgelöst, um den Fortschritt zu sichern. Die
-   UI zeichnet sich danach per `refresh_ui()` mit den neuen Werten neu.
+1. **Initialisierung**: `ui.py` erstellt ein `tk.Tk`-Fenster und übergibt es an
+  `HabitQuestApp`. Wenn keine Engine injiziert wurde, erzeugt die App selbst eine
+  `HabitQuestEngine`.
+2. **Laden und Tageswechsel**: Die Engine lädt Daten über `load_data()`, prüft mit
+  `check_new_day()` verstrichene Tage und lädt anschließend die heutigen Abschlüsse. Nicht
+  pausierte Routinen werden dabei um die verstrichenen Tage weitergeschaltet.
+3. **Darstellung**: `HabitQuestApp.refresh_ui()` bezieht den Fortschritt aus `profile` und die
+  geplanten Aufgaben über `engine.get_today_tasks()`. Die Engine filtert pausierte Routinen aus.
+4. **Aufgabe abschließen**: Ein Klick delegiert an `engine.toggle_task(key)`. Die Engine prüft den
+  Schlüssel, aktualisiert XP, Level und gegebenenfalls die Streak, schreibt den Abschluss in
+  `completed_by_date` und speichert sofort atomar.
+5. **Pausentag und Routineverwaltung**: Die UI ruft `claim_rest_day()`, `add_routine()` oder
+  `update_routine()` auf. Die Engine übernimmt Validierung, Bereinigung ungültiger
+  Abschlussschlüssel und Persistenz.
+6. **Aktualisierung**: Nach jeder Benutzeraktion ruft die UI `refresh_ui()` auf. Dadurch werden
+  Statistik, XP-Fortschritt und Aufgabenliste aus dem aktuellen Engine-Zustand neu gezeichnet.
 
 Durch diesen Aufbau bleibt die Benutzeroberfläche komplett unabhängig. Das ist besonders
 praktisch, weil sich so später problemlos die XP-Formel oder die Streak-Logik anpassen lässt, ohne
 auch nur eine Zeile UI-Code anfassen zu müssen.
 
-### 1.3 Geplante Attribute und Methoden
+### 1.3 Wichtige Attribute und Methoden
 
 Hier ist ein kurzer Überblick über die vorgesehenen Bausteine, die den Fortschritt speichern und
 verarbeiten:
@@ -229,10 +292,13 @@ Damit beim Zusammenführen der Branches keine Fehler entstehen, laufen die Testf
 Hintergrund ab:
 
 1. Neue Funktionen werden direkt mit Unittests in `test_habit_quest.py` abgedeckt.
-2. Bei jedem Push auf GitHub startet automatisch eine Action, die alle Tests durchlaufen lässt:
+2. Bei jedem Push auf GitHub startet automatisch eine Action, die alle Tests durchlaufen lässt.
+   Da die Tests echte Tkinter-Widgets erzeugen, was ein Display voraussetzt, muss der Testbefehl
+   in der headless CI-Umgebung (z. B. GitHub Actions Runner) mit `xvfb-run` gestartet werden,
+   sonst schlagen die Tests mit einem "no display name"-Fehler fehl:
 
    ```bash
-   python3 -m unittest test_habit_quest.py
+   xvfb-run python3 -m unittest test_habit_quest.py
    ```
 
 Das gibt die Sicherheit, dass Änderungen keine bestehenden Berechnungen unbeabsichtigt
