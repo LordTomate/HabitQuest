@@ -271,6 +271,21 @@ class HabitQuestApp:
         )
         style.map("Ghost.TButton", background=[("active", COLORS["track"])])
 
+        # Dark vertical scrollbar that blends into the window instead of the
+        # bright default. "clam" lets us recolor the trough, thumb, and arrows.
+        style.configure(
+            "Dark.Vertical.TScrollbar",
+            background=COLORS["surface_alt"],  # the draggable thumb
+            troughcolor=COLORS["bg"],  # the track behind the thumb
+            bordercolor=COLORS["bg"],
+            arrowcolor=COLORS["text_muted"],
+            borderwidth=0,
+        )
+        style.map(
+            "Dark.Vertical.TScrollbar",
+            background=[("active", COLORS["track"])],
+        )
+
     def _build_window_chrome(self) -> None:
         """Build a dark draggable title bar when WSLg ignores theme hints."""
         self.content_root: tk.Misc = self.root
@@ -504,7 +519,12 @@ class HabitQuestApp:
         wrapper.pack(fill="both", expand=True)
 
         canvas = tk.Canvas(wrapper, bg=COLORS["bg"], highlightthickness=0, bd=0)
-        scrollbar = ttk.Scrollbar(wrapper, orient="vertical", command=canvas.yview)
+        scrollbar = ttk.Scrollbar(
+            wrapper,
+            orient="vertical",
+            command=canvas.yview,
+            style="Dark.Vertical.TScrollbar",
+        )
         inner = tk.Frame(canvas, bg=COLORS["bg"])
 
         window = canvas.create_window((0, 0), window=inner, anchor="nw")
