@@ -170,7 +170,7 @@ class TestHabitQuestApp(unittest.TestCase):
 
     def test_status_starts_with_nothing_completed(self) -> None:
         """The UI starts with no completed tasks shown."""
-        self.assertEqual(self.app.status_label.cget("text"), "0/3 tasks done today")
+        self.assertEqual(self.app.status_label.cget("text"), "0/3 done")
 
     def test_toggle_task_refreshes_status(self) -> None:
         """Clicking through the UI updates the engine-backed status label."""
@@ -178,7 +178,7 @@ class TestHabitQuestApp(unittest.TestCase):
 
         self.app.toggle_task(task_key)
 
-        self.assertEqual(self.app.status_label.cget("text"), "1/3 tasks done today")
+        self.assertEqual(self.app.status_label.cget("text"), "1/3 done")
 
 
 if __name__ == "__main__":
