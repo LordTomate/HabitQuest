@@ -20,7 +20,7 @@ Software-Entwurf, Coding-Guidelines und GitHub-Workflow
 
 Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
 
-### Option A: venv + pip
+### Linux: Option A – venv + pip
 
 1. Virtuelle Umgebung erstellen und aktivieren:
 
@@ -42,7 +42,7 @@ Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
   sudo apt-get install -y python3-tk
   ```
 
-### Option B: Conda (inklusive Tkinter)
+### Linux: Option B – Conda (inklusive Tkinter)
 
 1. Conda-Umgebung aus `environment.yaml` erstellen/aktualisieren:
 
@@ -56,9 +56,61 @@ Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
   conda activate habitquest
   ```
 
+### Windows: Option A – PowerShell, venv + pip
+
+1. Installiere Python 3.12 oder neuer über [python.org](https://www.python.org/downloads/windows/).
+   Aktiviere im Installer **Add Python to PATH** und lasse **tcl/tk and IDLE** ausgewählt,
+   damit Tkinter verfügbar ist.
+
+2. Öffne PowerShell im Projektordner und erstelle sowie aktiviere die virtuelle Umgebung:
+
+  ```powershell
+  py -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  ```
+
+   Falls PowerShell die Aktivierung blockiert, erlaube Skripte nur für die aktuelle Sitzung und
+   führe anschließend den Aktivierungsbefehl erneut aus:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  ```
+
+3. Installiere die Python-Abhängigkeiten und prüfe Tkinter:
+
+  ```powershell
+  py -m pip install -r requirements.txt
+  py -m tkinter
+  ```
+
+   Der zweite Befehl öffnet ein kleines Tkinter-Testfenster. Schließe es, nachdem die Prüfung
+   erfolgreich war.
+
+4. Starte die App oder die Tests:
+
+  ```powershell
+  py ui.py
+  py -m unittest test_habit_quest.py
+  ```
+
+### Windows: Option B – Conda
+
+Mit installierter Miniconda oder Anaconda kann die Umgebung in der **Anaconda Prompt** oder in
+PowerShell erstellt werden:
+
+```powershell
+conda env create -f environment.yaml
+conda activate habitquest
+python ui.py
+python -m unittest test_habit_quest.py
+```
+
+Wenn die Umgebung bereits existiert, ersetze den ersten Befehl durch
+`conda env update -n habitquest -f environment.yaml --prune`.
+
 ### Start und Tests
 
-Nach dem Setup über Option A oder B kann die Anwendung gestartet werden:
+Nach dem Linux-Setup über Option A oder B kann die Anwendung gestartet werden:
 
 ```bash
 python3 ui.py
