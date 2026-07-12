@@ -58,11 +58,24 @@ Bevor der Code ausgeführt werden kann, wähle einen der beiden Wege:
 
 ### Start und Tests
 
-Nach Setup über Option A oder B:
+Nach dem Setup über Option A oder B kann die Anwendung gestartet werden:
 
 ```bash
 python3 ui.py
+```
+
+Die vollständige Testsuite wird mit folgendem Befehl ausgeführt:
+
+```bash
 python3 -m unittest test_habit_quest.py
+```
+
+Ohne grafische Display-Umgebung werden die Tkinter-Smoke-Tests automatisch übersprungen. Unter
+Linux können mit `xvfb` auch diese UI-Tests headless ausgeführt werden:
+
+```bash
+sudo apt-get install -y xvfb
+xvfb-run python3 -m unittest test_habit_quest.py
 ```
 
 ## 1 Konzeptionelle Beschreibung des Use-Cases
