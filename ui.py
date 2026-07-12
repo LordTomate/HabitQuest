@@ -1037,7 +1037,12 @@ class HabitQuestApp:
         )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Create the root window, launch the app, and run the event loop."""
     root = tk.Tk()
-    app = HabitQuestApp(root)
+    HabitQuestApp(root)
     root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
