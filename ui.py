@@ -636,20 +636,55 @@ class HabitQuestApp:
             return
 
         # Group consecutive tasks under a "Routine \u00b7 Category" heading.
+        cycle_by_routine = {
+            info["routine"]: info for info in self.engine.get_cycle_overview()
+        }
         current_group: str | None = None
         for task in today_tasks:
             group = f"{task['routine']} \u00b7 {task['category']}"
             if group != current_group:
                 current_group = group
-                tk.Label(
-                    self.tasks_frame,
-                    text=group.upper(),
-                    font=self.font_small,
-                    bg=COLORS["bg"],
-                    fg=COLORS["text_muted"],
-                ).pack(anchor="w", pady=(10, 4))
+                self._make_group_header(task, cycle_by_routine.get(task["routine"]))
 
             self._make_task_row(task)
+
+    def _make_group_header(
+        self, task: dict[str, str], cycle: dict[str, object] | None
+    ) -> None:
+        """Render a routine/category heading with its cycle position and preview."""
+        header = tk.Frame(self.tasks_frame, bg=COLORS["bg"])
+        header.pack(fill="x", pady=(10, 4))
+
+        tk.Label(
+            header,
+            text=f"{task['routine']} \u00b7 {task['category']}".upper(),
+            font=self.font_small,
+            bg=COLORS["bg"],
+            fg=COLORS["text_muted"],
+        ).pack(side="left")
+
+        if cycle:
+            # Show where today sits in the rotation, e.g. "DAY 1/3".
+            tk.Label(
+                header,
+                text=f"DAY {cycle['position']}/{cycle['length']}",
+                font=self.font_small,
+                bg=COLORS["bg"],
+                fg=COLORS["accent_soft"],
+            ).pack(side="right")
+
+        upcoming = cycle["upcoming"] if cycle else []
+        if upcoming:
+            # Spell out the next categories so the cycle order is obvious.
+            preview = "  \u2192  ".join(str(name) for name in upcoming)
+            tk.Label(
+                self.tasks_frame,
+                text=f"Next: {preview}",
+                font=self.font_small,
+                bg=COLORS["bg"],
+                fg=COLORS["text_muted"],
+                anchor="w",
+            ).pack(anchor="w", pady=(0, 2))
 
     def _make_task_row(self, task: dict[str, str]) -> None:
         """Build a single hover-highlighting, click-to-toggle task row."""
