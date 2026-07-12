@@ -15,15 +15,15 @@ MASCOT_FILE = "mascot.png"
 # Central color palette for the dark "riced" theme. Keeping every color in one
 # place makes it trivial to re-theme the whole app from a single spot.
 COLORS = {
-    "bg": "#12141c",           # window background
-    "surface": "#1b1e2b",      # cards and rows
+    "bg": "#12141c",  # window background
+    "surface": "#1b1e2b",  # cards and rows
     "surface_alt": "#252a3d",  # hover / selected state
-    "accent": "#7c5cff",       # primary brand color (XP, highlights)
+    "accent": "#7c5cff",  # primary brand color (XP, highlights)
     "accent_soft": "#9d84ff",  # lighter accent for hover
-    "text": "#e7e9f0",         # primary text
-    "text_muted": "#8b90a5",   # secondary text
-    "success": "#3ddc97",      # completed tasks / streak
-    "track": "#2a2e40",        # progress bar track
+    "text": "#e7e9f0",  # primary text
+    "text_muted": "#8b90a5",  # secondary text
+    "success": "#3ddc97",  # completed tasks / streak
+    "track": "#2a2e40",  # progress bar track
 }
 
 # Preferred UI fonts in priority order; the first one installed on the system
@@ -334,18 +334,30 @@ class HabitQuestApp:
     ) -> None:
         """Draw a filled rounded rectangle using a smoothed polygon."""
         points = [
-            x1 + r, y1,
-            x2 - r, y1,
-            x2, y1,
-            x2, y1 + r,
-            x2, y2 - r,
-            x2, y2,
-            x2 - r, y2,
-            x1 + r, y2,
-            x1, y2,
-            x1, y2 - r,
-            x1, y1 + r,
-            x1, y1,
+            x1 + r,
+            y1,
+            x2 - r,
+            y1,
+            x2,
+            y1,
+            x2,
+            y1 + r,
+            x2,
+            y2 - r,
+            x2,
+            y2,
+            x2 - r,
+            y2,
+            x1 + r,
+            y2,
+            x1,
+            y2,
+            x1,
+            y2 - r,
+            x1,
+            y1 + r,
+            x1,
+            y1,
         ]
         canvas.create_polygon(points, fill=color, outline=color, smooth=True)
 
@@ -503,8 +515,14 @@ class HabitQuestApp:
     def _center_over_root(self, window: tk.Toplevel) -> None:
         """Position a Toplevel centered over the main window."""
         window.update_idletasks()
-        x = self.root.winfo_rootx() + (self.root.winfo_width() - window.winfo_width()) // 2
-        y = self.root.winfo_rooty() + (self.root.winfo_height() - window.winfo_height()) // 2
+        x = (
+            self.root.winfo_rootx()
+            + (self.root.winfo_width() - window.winfo_width()) // 2
+        )
+        y = (
+            self.root.winfo_rooty()
+            + (self.root.winfo_height() - window.winfo_height()) // 2
+        )
         window.geometry(f"+{max(x, 0)}+{max(y, 0)}")
 
     # ---- routine manager ------------------------------------------------
@@ -662,9 +680,9 @@ class HabitQuestApp:
         ttk.Button(
             buttons, text="Cancel", style="Ghost.TButton", command=dialog.destroy
         ).pack(side="right")
-        ttk.Button(
-            buttons, text="Save", style="Accent.TButton", command=on_save
-        ).pack(side="right", padx=(0, 8))
+        ttk.Button(buttons, text="Save", style="Accent.TButton", command=on_save).pack(
+            side="right", padx=(0, 8)
+        )
 
         name_entry.focus_set()
         dialog.bind("<Return>", lambda _e: on_save())
