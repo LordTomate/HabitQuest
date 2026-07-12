@@ -171,8 +171,30 @@ class HabitQuestApp:
         self._build_layout()
 
         self.refresh_ui()
-        if not self.uses_custom_decorations:
+        if self.uses_custom_decorations:
+            # Borderless WSLg windows are unmanaged by the compositor, so they
+            # are not auto-placed or focused and default to the +0+0 corner,
+            # where they hide behind other windows. Center and raise the window
+            # so it reliably appears in front.
+            self._center_on_screen()
+            self.root.lift()
+            self.root.focus_force()
+        else:
             force_dark_window_decorations(self.root)
+
+    def _center_on_screen(self) -> None:
+        """Place the window in the middle of the screen.
+
+        Unmanaged (overrideredirect) WSLg windows default to +0+0, which can
+        leave them hidden behind other windows. Centering gives a reliable,
+        visible placement.
+        """
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = max((self.root.winfo_screenwidth() - width) // 2, 0)
+        y = max((self.root.winfo_screenheight() - height) // 2, 0)
+        self.root.geometry(f"+{x}+{y}")
 
     # ---- theme setup ----------------------------------------------------
 
@@ -294,9 +316,7 @@ class HabitQuestApp:
                 cursor="arrow",
             )
             button.pack(side="right", fill="y")
-            button.bind(
-                "<Enter>", lambda _event: button.configure(bg=hover_background)
-            )
+            button.bind("<Enter>", lambda _event: button.configure(bg=hover_background))
             button.bind(
                 "<Leave>", lambda _event: button.configure(bg=COLORS["surface"])
             )
