@@ -283,7 +283,7 @@ class HabitQuestEngine:
         return updated
 
     def claim_rest_day(self) -> bool:
-        """Count today as protected rest without requiring task completion."""
+        """Protect today's streak without recording a full task completion."""
         today = self._today_string()
         if self.profile.last_completed_date == today:
             return False
@@ -294,8 +294,8 @@ class HabitQuestEngine:
         else:
             self.profile.streak = 1
 
+        # A rest day continues the streak but must not look like every task was done.
         self.profile.last_completed_date = today
-        self.profile.last_all_done_date = today
         self.profile.history.append(
             {
                 "date": today,
