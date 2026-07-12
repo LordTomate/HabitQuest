@@ -95,6 +95,20 @@ class TestHabitQuestEngine(unittest.TestCase):
         self.assertEqual(self.engine.profile.streak, 1)
         self.assertEqual(len(self.engine.profile.history), 1)
 
+    def test_rest_day_does_not_replace_last_full_task_completion(self) -> None:
+        """A rest day protects the streak without being marked as all tasks done."""
+        for task_key in sorted(self.engine.get_all_today_task_keys()):
+            self.engine.toggle_task(task_key)
+        self.clock.current_day = date(2026, 1, 2)
+        self.engine.check_new_day()
+
+        claimed = self.engine.claim_rest_day()
+
+        self.assertTrue(claimed)
+        self.assertEqual(self.engine.profile.streak, 2)
+        self.assertEqual(self.engine.profile.last_completed_date, "2026-01-02")
+        self.assertEqual(self.engine.profile.last_all_done_date, "2026-01-01")
+
     def test_missing_a_day_resets_the_streak(self) -> None:
         """Opening the app after an unprotected day should reset the streak."""
         for task_key in sorted(self.engine.get_all_today_task_keys()):
