@@ -181,10 +181,15 @@ class HabitQuestApp:
             # where they hide behind other windows. Center and raise the window
             # so it reliably appears in front.
             self._center_on_screen()
-            self.root.lift()
-            self.root.focus_force()
         else:
             force_dark_window_decorations(self.root)
+
+        # Raise the window above other applications on launch regardless of the
+        # decoration mode, otherwise it can open hidden behind the editor.
+        self.root.lift()
+        self.root.attributes("-topmost", True)
+        self.root.after(200, lambda: self.root.attributes("-topmost", False))
+        self.root.focus_force()
 
     def _center_on_screen(self) -> None:
         """Place the window in the middle of the screen.
