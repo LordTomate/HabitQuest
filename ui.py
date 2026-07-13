@@ -857,7 +857,7 @@ class HabitQuestApp:
         """Open a themed window for adding and editing routines."""
         window = tk.Toplevel(self.root)
         window.title("Manage routines")
-        window.geometry("480x360")
+        window.geometry("560x360")
         window.configure(bg=COLORS["bg"])
         window.transient(self.root)
 
@@ -886,20 +886,23 @@ class HabitQuestApp:
         buttons = tk.Frame(window, bg=COLORS["bg"])
         buttons.pack(fill="x", padx=16, pady=(0, 16))
 
+        edit_actions = tk.Frame(buttons, bg=COLORS["bg"])
+        edit_actions.pack(side="left")
+
         ttk.Button(
-            buttons,
+            edit_actions,
             text="Add routine",
             style="Accent.TButton",
             command=lambda: self.add_routine_from_dialog(routines_listbox),
         ).pack(side="left")
         ttk.Button(
-            buttons,
+            edit_actions,
             text="Edit selected",
             style="Ghost.TButton",
             command=lambda: self.edit_selected_routine(routines_listbox),
         ).pack(side="left", padx=(8, 0))
         ttk.Button(
-            buttons,
+            edit_actions,
             text="Delete selected",
             style="Ghost.TButton",
             command=lambda: self.delete_selected_routine(routines_listbox),
@@ -909,7 +912,7 @@ class HabitQuestApp:
             text="Close",
             style="Ghost.TButton",
             command=window.destroy,
-        ).pack(side="right")
+        ).pack(side="right", padx=(16, 0))
 
         self.refresh_routine_listbox(routines_listbox)
         if self.uses_custom_decorations:
